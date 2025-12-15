@@ -13,6 +13,8 @@ import time
 import uuid
 import hashlib
 import logging
+import requests
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from functools import wraps
 
@@ -25,6 +27,14 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'jrebel-license-server-secret')
+
+# 远程配置服务
+CONFIG_SERVER_URL = os.environ.get('CONFIG_SERVER_URL', 'http://43.143.21.219:5000')
+CONFIG_SERVER_TOKEN = os.environ.get('CONFIG_SERVER_TOKEN', 'u2InTXnmFF0Um6Sd')
+
+# 使用记录存储 (内存存储，生产环境建议使用数据库)
+usage_records = []
+MAX_RECORDS = 10000  # 最大记录数
 
 # ==================== JRebel 私钥 ====================
 JREBEL_PRIVATE_KEY_BASE64 = (
@@ -167,6 +177,60 @@ jrebel_signer = JRebelSigner()
 jetbrains_signer = JetBrainsSigner()
 
 
+# ==================== 辅助函数 ====================
+
+def get_client_ip():
+    """获取客户端真实 IP"""
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    elif request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    return request.remote_addr
+
+
+def add_usage_record(product: str, action: str, guid: str = None, username: str = None):
+    """添加使用记录"""
+    global usage_records
+    
+    record = {
+        'timestamp': datetime.now().isoformat(),
+        'product': product,
+        'action': action,
+        'guid': guid,
+        'username': username,
+        'ip': get_client_ip(),
+        'user_agent': request.headers.get('User-Agent', '')[:200]
+    }
+    
+    usage_records.insert(0, record)
+    
+    # 限制记录数量
+    if len(usage_records) > MAX_RECORDS:
+        usage_records = usage_records[:MAX_RECORDS]
+    
+    logger.info(f"Usage: {product} - {action} - {guid} - {username} - {get_client_ip()}")
+
+
+def verify_admin_token():
+    """验证管理员 token"""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return False
+    
+    token = auth_header[7:]
+    return token == CONFIG_SERVER_TOKEN
+
+
+def admin_required(f):
+    """管理员权限装饰器"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not verify_admin_token():
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 # ==================== Web 界面路由 ====================
 
 @app.route('/')
@@ -243,6 +307,9 @@ def jrebel_leases():
     
     if not client_randomness or not username or not guid:
         return '', 403
+    
+    # 记录使用
+    add_usage_record('jrebel', 'lease', guid, username)
     
     valid_from = None
     valid_until = None
@@ -352,6 +419,9 @@ def jetbrains_obtain_ticket():
     if not salt or not username:
         return '', 403
     
+    # 记录使用
+    add_usage_record('jetbrains', 'obtainTicket', None, username)
+    
     prolongation_period = "607875500"
     xml_content = (
         f"<ObtainTicketResponse><message></message>"
@@ -381,13 +451,74 @@ def jetbrains_release_ticket():
     return f"<!-- {signature} -->\n{xml_content}", 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
+# ==================== 后台管理 API ====================
+
+@app.route('/admin')
+def admin_page():
+    """后台管理页面"""
+    return render_template('admin.html')
+
+
+@app.route('/api/admin/stats')
+@admin_required
+def admin_stats():
+    """获取统计数据"""
+    today = datetime.now().date()
+    today_str = today.isoformat()
+    
+    total = len(usage_records)
+    today_count = sum(1 for r in usage_records if r['timestamp'].startswith(today_str))
+    jrebel_count = sum(1 for r in usage_records if r['product'] == 'jrebel')
+    jetbrains_count = sum(1 for r in usage_records if r['product'] == 'jetbrains')
+    
+    return jsonify({
+        'total': total,
+        'today': today_count,
+        'jrebel': jrebel_count,
+        'jetbrains': jetbrains_count
+    })
+
+
+@app.route('/api/admin/records')
+@admin_required
+def admin_records():
+    """获取使用记录"""
+    page = int(request.args.get('page', 1))
+    page_size = int(request.args.get('page_size', 20))
+    search = request.args.get('search', '').strip().lower()
+    
+    # 过滤记录
+    if search:
+        filtered = [
+            r for r in usage_records 
+            if search in (r.get('guid') or '').lower() 
+            or search in (r.get('ip') or '').lower()
+            or search in (r.get('username') or '').lower()
+        ]
+    else:
+        filtered = usage_records
+    
+    # 分页
+    total = len(filtered)
+    start = (page - 1) * page_size
+    end = start + page_size
+    records = filtered[start:end]
+    
+    return jsonify({
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'records': records
+    })
+
+
 # ==================== 通配路由 (处理 GUID 路径) ====================
 
 @app.route('/<path:guid>', methods=['GET'])
 def handle_guid_path(guid):
     """处理 GUID 路径访问 (用于 JRebel 激活页面)"""
-    # 如果是静态文件请求，跳过
-    if guid.startswith('static/') or guid.startswith('api/'):
+    # 如果是静态文件请求或管理页面，跳过
+    if guid.startswith('static/') or guid.startswith('api/') or guid == 'admin':
         return '', 404
     
     # 返回激活信息页面
@@ -402,7 +533,7 @@ def handle_guid_path(guid):
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 58080))
     debug = os.environ.get('DEBUG', 'false').lower() == 'true'
     
     print("=" * 70)

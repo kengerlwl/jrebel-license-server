@@ -8,60 +8,83 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0d1117;
-            --bg-card: #161b22;
-            --border-color: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent-blue: #58a6ff;
-            --accent-green: #3fb950;
-            --accent-orange: #d29922;
-            --accent-red: #f85149;
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --border-color: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --accent-blue: #0d6efd;
+            --accent-green: #198754;
+            --accent-orange: #fd7e14;
+            --accent-red: #dc3545;
+            --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+            --shadow-md: 0 .5rem 1rem rgba(0,0,0,.15);
         }
         
         body {
-            background: var(--bg-dark);
+            background: var(--bg-body);
             color: var(--text-primary);
             min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         
         .navbar {
             background: var(--bg-card) !important;
-            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            border-bottom: none;
         }
         
         .card {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
         }
         
         .card-header {
             background: transparent;
             border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
         }
         
         .form-control, .form-select {
-            background: var(--bg-dark);
-            border: 1px solid var(--border-color);
+            background: #fff;
+            border: 1px solid #ced4da;
             color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
         }
         
         .form-control:focus, .form-select:focus {
-            background: var(--bg-dark);
+            background: #fff;
             border-color: var(--accent-blue);
             color: var(--text-primary);
-            box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
         
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
         .btn-primary {
             background: var(--accent-blue);
             border-color: var(--accent-blue);
         }
         
         .btn-primary:hover {
-            background: #4c9aed;
-            border-color: #4c9aed;
+            background: #0b5ed7;
+            border-color: #0a58ca;
         }
         
         .btn-success {
@@ -70,27 +93,34 @@
         }
         
         .result-box {
-            background: var(--bg-dark);
+            background: #f8f9fa;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 15px;
             font-family: 'Monaco', 'Menlo', monospace;
             word-break: break-all;
+            color: #d63384;
         }
         
         .copy-btn {
             cursor: pointer;
-            color: var(--accent-blue);
+            color: var(--text-secondary);
+            transition: color 0.2s;
         }
         
         .copy-btn:hover {
-            color: var(--accent-green);
+            color: var(--accent-blue);
         }
         
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(25, 135, 84, 0.1);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
         
         .status-dot {
@@ -102,34 +132,36 @@
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
         }
         
         .product-icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
         }
         
         .product-card {
-            transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
         }
         
         .product-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         
         .product-card.selected {
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 2px var(--accent-blue);
+            background: rgba(13, 110, 253, 0.03);
         }
         
         .footer {
             border-top: 1px solid var(--border-color);
-            padding: 20px 0;
-            margin-top: 50px;
+            padding: 40px 0;
+            margin-top: 60px;
+            background: #fff;
         }
         
         .text-muted {
@@ -142,15 +174,16 @@
         }
         
         a:hover {
-            color: #4c9aed;
+            color: #0a58ca;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark">
+    <nav class="navbar navbar-light bg-white">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-lightning-charge-fill text-warning"></i>
+                <i class="bi bi-lightning-charge-fill text-primary"></i>
                 JRebel & JetBrains License Server
             </a>
             <span class="status-badge text-success">

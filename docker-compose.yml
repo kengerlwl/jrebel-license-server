@@ -6,13 +6,13 @@ services:
     container_name: jrebel-license-server
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "58080:58080"
     environment:
-      - PORT=8080
+      - PORT=58080
       - SECRET_KEY=your-secret-key-change-in-production
       - DEBUG=false
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      test: ["CMD", "curl", "-f", "http://localhost:58080/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
