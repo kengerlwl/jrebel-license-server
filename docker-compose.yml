@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  license-server:
+    build: .
+    container_name: jrebel-license-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SECRET_KEY=your-secret-key-change-in-production
+      - DEBUG=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 如果需要使用 nginx 反向代理，取消下面的注释
+#   nginx:
+#     image: nginx:alpine
+#     container_name: jrebel-nginx
+#     restart: unless-stopped
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#       - ./ssl:/etc/nginx/ssl:ro
+#     depends_on:
+#       - license-server
