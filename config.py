@@ -80,6 +80,25 @@ def get_mysql_config() -> dict:
 
 # 配置常量
 SECRET_KEY = os.environ.get('SECRET_KEY', 'jrebel-license-server-secret')
-ADMIN_TOKEN = get_config_value('api_tokens', CONFIG_SERVER_TOKEN)
+
+def get_api_tokens() -> list:
+    """获取 API tokens 列表"""
+    tokens_value = get_config_value('api_tokens', None)
+    if tokens_value:
+        # 如果是字符串，尝试解析 JSON
+        if isinstance(tokens_value, str):
+            try:
+                tokens = json.loads(tokens_value)
+                if isinstance(tokens, list):
+                    return tokens
+            except json.JSONDecodeError:
+                # 如果不是 JSON，当作单个 token
+                return [tokens_value]
+        elif isinstance(tokens_value, list):
+            return tokens_value
+    # 默认返回包含 CONFIG_SERVER_TOKEN 的列表
+    return [CONFIG_SERVER_TOKEN]
+
+API_TOKENS = get_api_tokens()
 MYSQL_CONFIG = get_mysql_config()
 

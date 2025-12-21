@@ -7,7 +7,7 @@ from functools import wraps
 
 from flask import request, jsonify
 
-from config import ADMIN_TOKEN
+from config import API_TOKENS
 
 
 def get_client_ip():
@@ -26,7 +26,7 @@ def verify_admin_token():
         return False
 
     token = auth_header[7:]
-    return token == ADMIN_TOKEN
+    return token in API_TOKENS
 
 
 def admin_required(f):

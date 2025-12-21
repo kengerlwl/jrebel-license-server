@@ -14,6 +14,7 @@
 - 💡 **JetBrains IDE 激活** - 支持旧版本 IDE（新版本需配合 ja-netfilter）
 - 🌐 **Web 界面** - 美观的 Web 界面，一键生成激活 URL
 - 🐳 **Docker 部署** - 支持 Docker 一键部署
+- 🚀 **平滑发布** - 基于 OpenResty 动态 upstream 实现零停机部署
 - 🔒 **自托管** - 完全自托管，数据安全
 
 ## 📸 截图
