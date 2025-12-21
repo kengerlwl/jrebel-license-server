@@ -6,17 +6,17 @@ JRebel & JetBrains License Server
 参考: https://github.com/Ahaochan/JrebelLicenseServerforJava
 """
 
-import os
 import base64
-import json
-import time
-import uuid
 import hashlib
 import logging
-import requests
-from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+import os
+import time
+import uuid
+from datetime import datetime
 from functools import wraps
+
+from flask import Flask, request, jsonify, render_template
+from kengerkit import KengerClient
 
 # 配置日志
 logging.basicConfig(
@@ -28,9 +28,37 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'jrebel-license-server-secret')
 
-# 远程配置服务
+# 远程配置服务 - 使用 kengerkit
 CONFIG_SERVER_URL = os.environ.get('CONFIG_SERVER_URL', 'http://43.143.21.219:5000')
 CONFIG_SERVER_TOKEN = os.environ.get('CONFIG_SERVER_TOKEN', 'u2InTXnmFF0Um6Sd')
+
+# 初始化 KengerClient
+kenger_client = None
+try:
+    kenger_client = KengerClient(
+        base_url=CONFIG_SERVER_URL,
+        token=CONFIG_SERVER_TOKEN
+    )
+    logger.info("KengerClient 初始化成功")
+except Exception as e:
+    logger.warning(f"KengerClient 初始化失败: {e}，将使用环境变量配置")
+
+
+def get_config_value(key: str, default: str = None) -> str:
+    """从远程配置服务获取配置值，失败时返回默认值"""
+    if kenger_client:
+        try:
+            value = kenger_client.config.get(key)
+            if value is not None:
+                logger.info(f"从远程配置获取 {key} 成功")
+                return value
+        except Exception as e:
+            logger.warning(f"从远程配置获取 {key} 失败: {e}")
+    return default
+
+
+# 从远程配置获取管理员 token（如果可用）
+ADMIN_TOKEN = get_config_value('api_tokens', CONFIG_SERVER_TOKEN)
 
 # 使用记录存储 (内存存储，生产环境建议使用数据库)
 usage_records = []
@@ -218,7 +246,7 @@ def verify_admin_token():
         return False
     
     token = auth_header[7:]
-    return token == CONFIG_SERVER_TOKEN
+    return token == ADMIN_TOKEN
 
 
 def admin_required(f):

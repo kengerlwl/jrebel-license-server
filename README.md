@@ -2,6 +2,12 @@
 
 🚀 一个支持 JRebel 和 JetBrains IDE 的本地 License Server，提供 Web 界面生成激活 URL。
 
+## 🌍 在线演示
+
+**在线体验地址：** [https://hack.156354.xyz/](https://hack.156354.xyz/)
+
+> 💡 可以直接使用在线服务，无需自行部署
+
 ## ✨ 功能特性
 
 - 🔥 **JRebel 激活** - 支持 JRebel 7.1+ 和 2018.1+ 版本
@@ -68,6 +74,44 @@ gunicorn --bind 0.0.0.0:8080 app:app
 8. 点击 **Activate**
 
 ### JetBrains IDE 激活
+
+**第一步：安装 JRebel 插件**
+
+1. 打开 IDEA，进入 `File` > `Settings`（Mac 为 `IntelliJ IDEA` > `Preferences`）
+2. 选择 `Plugins`，在 `Marketplace` 中搜索 `JRebel`
+3. 点击 `Install` 安装插件
+4. 重启 IDEA 使插件生效
+
+**第二步：获取激活 URL**
+
+1. 访问本服务的 Web 界面 `http://localhost:8080`
+2. 选择 **JRebel** 产品
+3. 点击 **生成激活 URL**
+4. 复制生成的激活 URL
+
+**第三步：在 IDEA 中激活**
+
+1. 打开 IDEA，进入 `Help` > `JRebel` > `Activate`
+2. 在弹出的激活窗口中选择 **Team URL** 方式
+3. 将复制的激活 URL 粘贴到 **Team URL** 字段
+4. 邮箱字段填写任意邮箱（如 `test@example.com`）
+5. 点击 **Activate** 按钮
+6. 激活成功后，建议将 JRebel 设置为 **Work offline**（离线模式）
+
+**第四步：配置自动编译**
+
+1. 进入 `File` > `Settings` > `Build, Execution, Deployment` > `Compiler`
+2. 勾选 **Build project automatically**
+3. 勾选 **Compile independent modules in parallel**
+
+**第五步：使用 JRebel 运行项目**
+
+1. 打开 `View` > `Tool Windows` > `JRebel`
+2. 在 JRebel 工具栏中勾选需要热部署的模块
+3. 使用 **Rebel Run** 或 **Rebel Debug** 启动项目（而不是普通的 Run/Debug）
+4. 修改代码后，按 `Ctrl + Shift + F9`（Windows）或 `Command + Shift + F9`（Mac）重新编译
+5. 代码会自动热部署，无需重启服务器
+
 
 > ⚠️ 新版本 JetBrains IDE（2021.3+）需要配合 [ja-netfilter](https://gitee.com/ja-netfilter/ja-netfilter) 使用
 
